@@ -22,3 +22,6 @@ wheel=0.36.2=pyhd3eb1b0_0
 wincertstore=0.2=py38_0
 yarl=1.5.1=py38he774522_0
 zlib=1.2.11=h62dcd97_4
+
+aiohttp~=3.7.3
+multidict~=4.7.6

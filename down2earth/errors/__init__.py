@@ -1,0 +1,1 @@
+from down2earth.errors.fetching_errors import FetchMechanismFailed

@@ -51,7 +51,7 @@ class IRestClient(ABC):
     def _on_mechanism_failure(self, request: IRestRequest) -> None:
         pass
 
-    async def _rest_call(self, request: IRestRequest, signed: bool = False) -> Response:
+    async def rest_call(self, request: IRestRequest, signed: bool = False) -> Response:
         mechanism = self.fetch_mechanism
         if signed:
             self._sign_payload(request)

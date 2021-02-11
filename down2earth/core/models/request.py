@@ -1,6 +1,7 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from ssl import SSLContext
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Awaitable, Callable
 
 import aiohttp
 from aiohttp import ClientSession, ClientResponse as Response, ClientTimeout
@@ -28,62 +29,63 @@ class IRestRequest(ABC):
     async def fetch(
             self,
             session: Optional[ClientSession] = None,
-            ssl_context: Optional[SSLContext] = None
+            ssl_context: Optional[SSLContext] = None,
+            callback: Optional[Callable[[IRestRequest, Response], Awaitable[None]]] = None
     ) -> Response:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def domain(self) -> str:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def resource(self) -> str:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def url(self) -> str:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def method(self) -> RestCallType:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def data(self) -> Optional[Dict[str, Any]]:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def headers(self) -> Optional[Dict[str, Any]]:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def params(self) -> Optional[Dict[str, Any]]:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def attempt(self) -> int:
+        pass
+
+    @property
+    @abstractmethod
+    def timeout(self) -> float:
+        pass
+
+    @timeout.setter
+    @abstractmethod
+    def timeout(self, val: float) -> None:
         pass
 
     @abstractmethod
     def next_attempt(self) -> None:
-        pass
-
-    @abstractmethod
-    @property
-    def timeout(self) -> float:
-        pass
-
-    @abstractmethod
-    @timeout.setter
-    def timeout(self, val: float) -> None:
         pass
 
 
@@ -124,7 +126,8 @@ class RestRequest(IRestRequest, JsonAdaptable):
     async def fetch(
             self,
             session: Optional[ClientSession] = None,
-            ssl_context: Optional[SSLContext] = None
+            ssl_context: Optional[SSLContext] = None,
+            callback: Optional[Callable[[IRestRequest, Response], Awaitable[None]]] = None
     ) -> Response:
         if session is not None:
             call = session.request(
@@ -145,6 +148,9 @@ class RestRequest(IRestRequest, JsonAdaptable):
             )
         self.next_attempt()
         async with call as response:
+            if callback:
+                callback(self, response)
+            await response.text()
             return response
 
     @property

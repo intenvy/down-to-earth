@@ -15,7 +15,7 @@ class IEngine(ABC):
 
 
 class DownToEarth(IEngine):
-    __slots__ = '_client_mapping'
+    __slots__ = '_client_mapping',
 
     def __init__(self, mapping: Dict[str, IRestClient]) -> None:
         self._client_mapping = mapping

@@ -114,7 +114,7 @@ class GentleMechanism(ExponentialTimeRetry):
     __slots__ = [
         '_fetcher', '_max_attempts',
         '_retry_exceptions', '_stop_exceptions',
-        '_retry_status_codes', '_stop_status_codes'
+        '_retry_status_codes', '_stop_status_codes',
     ]
 
     def __init__(
@@ -148,6 +148,8 @@ class GentleMechanism(ExponentialTimeRetry):
     ) -> None:
         if response is not None:
             status_code = response.status
+            if 200 <= status_code < 300:
+                return
             if status_code in self._stop_status_codes:
                 raise FetchMechanismFailed('Stop status codes are hit', status_code, exception)
             if status_code not in self._retry_status_codes:
@@ -169,8 +171,10 @@ class GentleMechanism(ExponentialTimeRetry):
                 response = await self._fetcher.fetch(request)
                 self.on_cycle_state(request, response=response)
                 return response
-            except FetchMechanismFailed:
+
+            except FetchMechanismFailed as e:
                 raise
+
             except Exception as e:
                 self.on_cycle_state(request, exception=e)
 

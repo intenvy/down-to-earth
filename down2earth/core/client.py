@@ -1,17 +1,14 @@
 import json
 from abc import ABC, abstractmethod
-from typing import Dict, Any
-from typing import Optional, Union
+from typing import Optional
 
-from aiohttp import ClientResponse as Response, ClientSession
-from multidict import CIMultiDictProxy
+from aiohttp import ClientResponse as Response
 
-from .enums import RestCallType
-from .models.request import IRestRequest
 from .mechanisms.fetch import IFetchMechanism
+from .models.request import IRestRequest
 from ..errors.fetching_errors import FetchMechanismFailed
+from ..utils.logging_utils import IMonitorLogger, LogLevel
 from ..utils.typing_utils import StringMapping, Json, JsonDictionary
-from ..utils.config_utils import IFileConfig
 
 
 def clean_request_params(params: JsonDictionary) -> StringMapping:
@@ -33,8 +30,8 @@ async def deserialize_response(response: Response) -> Optional[Json]:
 
 class IRestClient(ABC):
 
-    @abstractmethod
     @property
+    @abstractmethod
     def fetch_mechanism(self) -> IFetchMechanism:
         pass
 
@@ -52,23 +49,27 @@ class IRestClient(ABC):
         pass
 
     async def rest_call(self, request: IRestRequest, signed: bool = False) -> Response:
+        print('Making rest call')
         mechanism = self.fetch_mechanism
         if signed:
             self._sign_payload(request)
         try:
+            print('fetching response')
             response = await mechanism.fetch(request)
             self._on_response_received(request, response)
             return response
         except FetchMechanismFailed as e:
+            print('Error occurred')
+            print('error:', e.as_dict())
             self._on_mechanism_failure(request)
 
 
 class RestClient(IRestClient):
+    __slots__ = '_fetch_mechanism', '_logger'
 
-    __slots__ = '_fetch_mechanism'
-
-    def __init__(self, mechanism: IFetchMechanism):
+    def __init__(self, mechanism: IFetchMechanism, logger: IMonitorLogger):
         self._fetch_mechanism: IFetchMechanism = mechanism
+        self._logger: IMonitorLogger = logger
 
     @property
     def fetch_mechanism(self) -> IFetchMechanism:
@@ -78,12 +79,10 @@ class RestClient(IRestClient):
         await self._fetch_mechanism.close()
 
     def _on_mechanism_failure(self, request: IRestRequest) -> None:
-        print(request.__repr__())
-        # TODO log
+        self._logger.log(LogLevel.ERROR, f'Fetch mechanism failed on {request.url}, Request:{request}')
 
     def _on_response_received(self, request: IRestRequest, response: Response) -> None:
-        print('response received')
-        # TODO log
+        self._logger.log(LogLevel.ERROR, f'Response received from {request.url}, STATUS:{response.status}')
 
 
 """

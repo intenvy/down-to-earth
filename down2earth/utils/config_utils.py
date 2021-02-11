@@ -4,7 +4,7 @@ from typing import Dict, Union
 from .serialization_utils import JsonAdaptable
 
 
-class IFileConfig(ABC, ConfigParser, JsonAdaptable):
+class IFileConfig(ConfigParser, JsonAdaptable):
     name: str
     __slots__ = '_path', '_encoding'
 
